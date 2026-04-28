@@ -52,7 +52,10 @@ Categorías válidas: Alimentación, Transporte, Vivienda, Salud, Educación, En
 
 	const texto = result.content[0].text.trim()
 	const limpio = texto.replace(/```json|```/g, '').trim()
-	const datos = JSON.parse(limpio)
+	// Extraer solo el bloque JSON aunque haya texto extra
+	const match = limpio.match(/\{[\s\S]*\}/)
+	if (!match) throw new Error('No se encontró JSON en la respuesta')
+	const datos = JSON.parse(match[0])
     return res.status(200).json({ ok: true, datos })
 
   } catch (err) {
