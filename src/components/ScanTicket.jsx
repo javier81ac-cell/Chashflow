@@ -80,9 +80,11 @@ export default function ScanTicket({ onAgregar }) {
     if (!aGuardar.length) { setError('Seleccioná al menos un movimiento.'); return }
     setGuardando(true); setError('')
     try {
-      for (const m of aGuardar) {
-        await onAgregar({ id: Date.now() + Math.random(), fecha: m.fecha, tipo: m.tipo || 'gasto', cat: m.categoria, importe: parseFloat(m.importe), desc: m.descripcion })
-      }
+	for (let i = 0; i < aGuardar.length; i++) {
+  	  const m = aGuardar[i]
+  	  await new Promise(r => setTimeout(r, 100))
+  	  await onAgregar({ id: Date.now() + i * 1000, fecha: m.fecha, tipo: m.tipo || 'gasto', cat: m.categoria, importe: parseFloat(m.importe), desc: m.descripcion })
+}
       setOk(true); setEstado(ESTADOS.IDLE); setPreview(null); setMovimientos([])
       setTimeout(() => setOk(false), 3000)
     } catch (err) {
