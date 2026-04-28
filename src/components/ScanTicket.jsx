@@ -10,7 +10,7 @@ const ESTADOS = {
 }
 
 // Comprime la imagen a un tamaño manejable para la API
-function comprimirImagen(dataUrl, maxWidth = 1024) {
+function comprimirImagen(dataUrl, maxWidth = 600) {
   return new Promise((resolve) => {
     const img = new Image()
     img.onload = () => {
@@ -25,7 +25,7 @@ function comprimirImagen(dataUrl, maxWidth = 1024) {
       canvas.height = height
       const ctx = canvas.getContext('2d')
       ctx.drawImage(img, 0, 0, width, height)
-      const comprimida = canvas.toDataURL('image/jpeg', 0.8)
+      const comprimida = canvas.toDataURL('image/jpeg', 0.5)
       resolve(comprimida)
     }
     img.src = dataUrl
