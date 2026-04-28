@@ -30,7 +30,7 @@ export default function App() {
         {/* Logo */}
         <div style={{ padding: '0 24px 28px', borderBottom: '1px solid #2a2a2a' }}>
           <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: '#d4f060', letterSpacing: '.08em' }}>
-            mis<span style={{ color: '#5a5a5a' }}>finanzas</span>
+            mis<span style={{ color: '#5a5a5a' }}>Cashflow</span>
           </div>
           {syncing && (
             <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: '#5a5a5a', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
