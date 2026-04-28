@@ -50,8 +50,9 @@ Categorías válidas: Alimentación, Transporte, Vivienda, Salud, Educación, En
       return res.status(500).json({ ok: false, error: result.error.message })
     }
 
-    const texto = result.content[0].text.trim()
-    const datos = JSON.parse(texto)
+	const texto = result.content[0].text.trim()
+	const limpio = texto.replace(/```json|```/g, '').trim()
+	const datos = JSON.parse(limpio)
     return res.status(200).json({ ok: true, datos })
 
   } catch (err) {
