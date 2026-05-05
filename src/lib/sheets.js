@@ -14,7 +14,8 @@ export async function sheetGet() {
   try {
     const r = await fetch(`${url}?action=get`)
     const j = await r.json()
-    return j.data || []
+    const data = j.data || []
+	return data.map(d => ({ ...d, importe: Number(d.importe) }))
   } catch {
     return null
   }
