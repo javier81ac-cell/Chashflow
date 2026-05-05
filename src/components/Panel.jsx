@@ -126,7 +126,7 @@ export default function Panel({ datos }) {
               ...CHART_DEFAULTS,
               scales: {
                 x: { ticks: { ...tickStyle, maxTicksLimit: 8, autoSkip: true }, grid: { color: gridStyle.color } },
-                y: { ticks: { ...tickStyle, callback: fmtEje }, grid: { color: gridStyle.color } },
+                y: { ticks: { ...tickStyle, callback: v => { if (v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M'; if (v >= 1000) return '$' + (v/1000).toFixed(0) + 'k'; return '$' + v; } }, grid: { color: gridStyle.color } }
               },
               plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `$${fmtNum(ctx.raw)}` } } },
             }} />
@@ -148,7 +148,7 @@ export default function Panel({ datos }) {
             ...CHART_DEFAULTS,
             scales: {
               x: { ticks: tickStyle, grid: { color: gridStyle.color } },
-              y: { ticks: { ...tickStyle, callback: fmtEje }, grid: { color: gridStyle.color } },
+              y: { ticks: { ...tickStyle, callback: v => { if (v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M'; if (v >= 1000) return '$' + (v/1000).toFixed(0) + 'k'; return '$' + v; } }, grid: { color: gridStyle.color } }
             },
             plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: $${fmtNum(ctx.raw)}` } } },
           }} />
