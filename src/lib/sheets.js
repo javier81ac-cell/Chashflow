@@ -15,7 +15,12 @@ export async function sheetGet() {
     const r = await fetch(`${url}?action=get`)
     const j = await r.json()
     const data = j.data || []
-	return data.map(d => ({ ...d, importe: Number(d.importe) }))
+	return data.map(d => ({
+	  ...d,
+	  importe: Number(d.importe),
+	  fecha: String(d.fecha).slice(0, 10)
+	}))
+
   } catch {
     return null
   }
