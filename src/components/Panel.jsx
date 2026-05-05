@@ -15,22 +15,27 @@ const CHART_DEFAULTS = {
   plugins: { legend: { display: false } },
 }
 
+function fmtEje(v) {
+  if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M'
+  if (v >= 1000) return '$' + (v / 1000).toFixed(0) + 'k'
+  return '$' + v
+}
+
 export default function Panel({ datos }) {
   const meses = useMemo(() => getMeses(datos), [datos])
   const [mes, setMes] = useState(() => meses[meses.length - 1] || '')
 
   if (!meses.length) return <Empty text="Sin datos. Cargá movimientos primero." />
 
-  const movMes = datos.filter(d => d.fecha.startsWith(mes))
+  const movMes   = datos.filter(d => d.fecha.startsWith(mes))
   const ingresos = movMes.filter(d => d.tipo === 'ingreso').reduce((s, d) => s + Number(d.importe), 0)
   const gastos   = movMes.filter(d => d.tipo === 'gasto').reduce((s, d) => s + Number(d.importe), 0)
   const ahorro   = ingresos - gastos
   const pct      = ingresos > 0 ? Math.round(ahorro / ingresos * 100) : 0
 
-  // Torta
   const porCat = {}
   movMes.filter(d => d.tipo === 'gasto').forEach(d => { porCat[d.cat] = (porCat[d.cat] || 0) + Number(d.importe) })
-  const cats   = Object.keys(porCat).sort((a, b) => porCat[b] - porCat[a])
+  const cats    = Object.keys(porCat).sort((a, b) => porCat[b] - porCat[a])
   const colores = cats.map(c => CAT_COLORS[c] || '#5a5a5a')
 
   const tortaData = {
@@ -38,11 +43,10 @@ export default function Panel({ datos }) {
     datasets: [{ data: cats.map(c => Math.round(porCat[c])), backgroundColor: colores, borderColor: '#151515', borderWidth: 2 }],
   }
 
-  // Diario
   const [anio, mesNum] = mes.split('-')
   const diasEnMes = new Date(+anio, +mesNum, 0).getDate()
-  const dias = Array.from({ length: diasEnMes }, (_, i) => String(i + 1).padStart(2, '0'))
-  const gstDiario = dias.map(d => Math.round(movMes.filter(m => m.tipo === 'gasto' && m.fecha.endsWith('-' + d)).reduce((s, m) => s + Number(m.importe), 0)))
+  const dias      = Array.from({ length: diasEnMes }, (_, i) => String(i + 1).padStart(2, '0'))
+  const gstDiario = dias.map(d => Math.round(movMes.filter(m => m.tipo === 'gasto'   && m.fecha.endsWith('-' + d)).reduce((s, m) => s + Number(m.importe), 0)))
   const ingDiario = dias.map(d => Math.round(movMes.filter(m => m.tipo === 'ingreso' && m.fecha.endsWith('-' + d)).reduce((s, m) => s + Number(m.importe), 0)))
 
   const diarioData = {
@@ -53,11 +57,10 @@ export default function Panel({ datos }) {
     ],
   }
 
-  // Evolución mensual
-  const ultMeses  = meses.slice(-6)
-  const ingMes    = ultMeses.map(m => Math.round(datos.filter(d => d.fecha.startsWith(m) && d.tipo === 'ingreso').reduce((s, d) => s + Number(d.importe), 0)))
-  const gstMes    = ultMeses.map(m => Math.round(datos.filter(d => d.fecha.startsWith(m) && d.tipo === 'gasto').reduce((s, d) => s + Number(d.importe), 0)))
-  const ahoMes    = ultMeses.map((_, i) => ingMes[i] - gstMes[i])
+  const ultMeses = meses.slice(-6)
+  const ingMes   = ultMeses.map(m => Math.round(datos.filter(d => d.fecha.startsWith(m) && d.tipo === 'ingreso').reduce((s, d) => s + Number(d.importe), 0)))
+  const gstMes   = ultMeses.map(m => Math.round(datos.filter(d => d.fecha.startsWith(m) && d.tipo === 'gasto').reduce((s, d) => s + Number(d.importe), 0)))
+  const ahoMes   = ultMeses.map((_, i) => ingMes[i] - gstMes[i])
 
   const evolucionData = {
     labels: ultMeses.map(mesLabel),
@@ -70,7 +73,6 @@ export default function Panel({ datos }) {
 
   const tickStyle = { color: '#5a5a5a', font: { family: "'IBM Plex Mono',monospace", size: 10 } }
   const gridStyle = { color: '#1e1e1e' }
-  const tooltipFmt = (v) => '$' + fmtNum(v)
 
   return (
     <div style={{ animation: 'fadeUp .3s ease' }}>
@@ -84,7 +86,6 @@ export default function Panel({ datos }) {
         </Select>
       </div>
 
-      {/* Métricas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
         <MetricCard label="Ingresos"    value={`$${fmtNum(ingresos)}`} color="green" />
         <MetricCard label="Gastos"      value={`$${fmtNum(gastos)}`}   color="red" />
@@ -92,11 +93,9 @@ export default function Panel({ datos }) {
         <MetricCard label="Tasa ahorro" value={`${pct}%`} sub="meta: 20%" color={pct >= 20 ? 'accent' : pct >= 10 ? 'green' : 'red'} />
       </div>
 
-      {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
         <Card>
           <SectionTitle>Gastos por categoría</SectionTitle>
-          {/* Legend */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {cats.map((c, i) => (
               <span key={c} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#5a5a5a', fontFamily: "'IBM Plex Mono',monospace" }}>
@@ -106,9 +105,10 @@ export default function Panel({ datos }) {
             ))}
           </div>
           <div style={{ position: 'relative', height: 210 }}>
-            {cats.length ? (
-              <Doughnut data={tortaData} options={{ ...CHART_DEFAULTS, cutout: '62%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `$${fmtNum(ctx.raw)}` } } } }} />
-            ) : <Empty text="Sin gastos este mes" />}
+            {cats.length
+              ? <Doughnut data={tortaData} options={{ ...CHART_DEFAULTS, cutout: '62%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `$${fmtNum(ctx.raw)}` } } } }} />
+              : <Empty text="Sin gastos este mes" />
+            }
           </div>
         </Card>
 
@@ -126,14 +126,14 @@ export default function Panel({ datos }) {
               ...CHART_DEFAULTS,
               scales: {
                 x: { ticks: { ...tickStyle, maxTicksLimit: 8, autoSkip: true }, grid: { color: gridStyle.color } },
-		y: { ticks: { ...tickStyle, callback: v => { if (v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M'; if (v >= 1000) return '$' + (v/1000).toFixed(0) + 'k'; return '$' + v; } }, grid: { color: gridStyle.color } },
+                y: { ticks: { ...tickStyle, callback: fmtEje }, grid: { color: gridStyle.color } },
+              },
               plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `$${fmtNum(ctx.raw)}` } } },
             }} />
           </div>
         </Card>
       </div>
 
-      {/* Evolución */}
       <Card>
         <SectionTitle>Evolución mensual</SectionTitle>
         <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
@@ -148,7 +148,7 @@ export default function Panel({ datos }) {
             ...CHART_DEFAULTS,
             scales: {
               x: { ticks: tickStyle, grid: { color: gridStyle.color } },
-              y: { ticks: { ...tickStyle, callback: tooltipFmt }, grid: { color: gridStyle.color } },
+              y: { ticks: { ...tickStyle, callback: fmtEje }, grid: { color: gridStyle.color } },
             },
             plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: $${fmtNum(ctx.raw)}` } } },
           }} />
