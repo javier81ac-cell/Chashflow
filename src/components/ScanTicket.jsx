@@ -179,7 +179,7 @@ export default function ScanTicket({ onAgregar }) {
       setMovimientos(prev => prev.map(m => ({
         ...m,
         fecha: fechaMasiva || m.fecha,
-        descripcion: prefijo ? `${prefijo} ${m.descripcion}` : m.descripcion
+        descripcion: prefijo ? `${m.descripcion} ${prefijo}` : m.descripcion
       })))
     }}
   >
