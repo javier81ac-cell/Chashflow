@@ -27,6 +27,8 @@ export default function ScanTicket({ onAgregar }) {
   const [error, setError]           = useState('')
   const [ok, setOk]                 = useState(false)
   const [guardando, setGuardando]   = useState(false)
+  const [fechaMasiva, setFechaMasiva] = useState('')
+  const [prefijo, setPrefijo]         = useState('')
   const inputRef = useRef()
 
   function handleImagen(e) {
@@ -142,13 +144,48 @@ export default function ScanTicket({ onAgregar }) {
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: '#d4f060', letterSpacing: '.07em', textTransform: 'uppercase' }}>
-              {movimientos.length} movimientos detectados — tildá los que querés guardar
+            {movimientos.length} movimientos detectados — tildá los que querés guardar
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <Btn small onClick={() => { const s = {}; movimientos.forEach((_, i) => s[i] = true); setSeleccionados(s) }}>Todos</Btn>
               <Btn small onClick={() => setSeleccionados({})}>Ninguno</Btn>
             </div>
           </div>
+
+          {/* Edición masiva */}
+          <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10, padding: '14px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 10, color: '#5a5a5a', fontFamily: "'IBM Plex Mono',monospace", textTransform: 'uppercase', marginBottom: 4 }}>Aplicar fecha a todos</div>
+          <input type="date" value={fechaMasiva}
+            onChange={e => setFechaMasiva(e.target.value)}
+      style={{ background: '#2a2a2a', border: '1px solid #3a3a3a', borderRadius: 6, color: '#ede9e1', fontFamily: "'Syne',sans-serif", fontSize: 13, padding: '7px 10px' }}
+    />
+  </div>
+  <div>
+    <div style={{ fontSize: 10, color: '#5a5a5a', fontFamily: "'IBM Plex Mono',monospace", textTransform: 'uppercase', marginBottom: 4 }}>Prefijo descripción (máx. 10 car.)</div>
+    <input
+      type="text"
+      maxLength={10}
+      value={prefijo}
+      onChange={e => setPrefijo(e.target.value)}
+      placeholder="ej: TC VISA"
+      style={{ background: '#2a2a2a', border: '1px solid #3a3a3a', borderRadius: 6, color: '#ede9e1', fontFamily: "'Syne',sans-serif", fontSize: 13, padding: '7px 10px', width: 140 }}
+    />
+  </div>
+  <Btn
+    variant="accent"
+    small
+    onClick={() => {
+      setMovimientos(prev => prev.map(m => ({
+        ...m,
+        fecha: fechaMasiva || m.fecha,
+        descripcion: prefijo ? `${prefijo} ${m.descripcion}` : m.descripcion
+      })))
+    }}
+  >
+    Actualizar todos
+  </Btn>
+</div>
 
           {/* Lista de movimientos */}
           <Card style={{ padding: 0, overflow: 'hidden', marginBottom: 14 }}>
