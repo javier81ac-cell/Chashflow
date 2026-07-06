@@ -1,14 +1,11 @@
 import React, { useState, useMemo } from 'react'
-import { Card, Btn, Select, Input, Empty } from './UI'
-import { getMeses, mesLabel, fmtNum, CATS_GASTO, CATS_INGRESO } from '../lib/constants'
+import { Card, Btn, Select, Empty } from './UI'
+import { getMeses, mesLabel, fmtNum } from '../lib/constants'
 
-export default function Movimientos({ datos, onEliminar, onEditar, onImportar }) {
+export default function Movimientos({ datos, onEliminar, onImportar }) {
   const [filMes, setFilMes]   = useState('')
   const [filTipo, setFilTipo] = useState('')
   const [filCat, setFilCat]   = useState('')
-  const [buscar, setBuscar]   = useState('')
-  const [editId, setEditId]   = useState(null)
-  const [editRow, setEditRow] = useState(null)
 
   const meses   = useMemo(() => getMeses(datos), [datos])
   const allCats = useMemo(() => [...new Set(datos.map(d => d.cat))].sort(), [datos])
@@ -18,20 +15,8 @@ export default function Movimientos({ datos, onEliminar, onEditar, onImportar })
     if (filMes)  r = r.filter(d => d.fecha.startsWith(filMes))
     if (filTipo) r = r.filter(d => d.tipo === filTipo)
     if (filCat)  r = r.filter(d => d.cat === filCat)
-    if (buscar)  r = r.filter(d => (d.desc || '').toLowerCase().includes(buscar.toLowerCase()) || d.cat.toLowerCase().includes(buscar.toLowerCase()))
     return r
-  }, [datos, filMes, filTipo, filCat, buscar])
-
-  function empezarEdicion(m) {
-    setEditId(m.id)
-    setEditRow({ ...m })
-  }
-
-  async function guardarEdicion() {
-    await onEditar({ ...editRow, importe: parseFloat(editRow.importe) })
-    setEditId(null)
-    setEditRow(null)
-  }
+  }, [datos, filMes, filTipo, filCat])
 
   function exportCSV() {
     const rows = ['id,fecha,tipo,categoria,importe,descripcion',
@@ -89,12 +74,6 @@ export default function Movimientos({ datos, onEliminar, onEditar, onImportar })
           <option value="">Todas las categorías</option>
           {allCats.map(c => <option key={c}>{c}</option>)}
         </select>
-        <input
-          style={{ ...selStyle, minWidth: 160 }}
-          placeholder="Buscar descripción o categoría…"
-          value={buscar}
-          onChange={e => setBuscar(e.target.value)}
-        />
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <Btn small onClick={exportCSV}>Exportar CSV</Btn>
           <Btn small onClick={exportJSON}>Exportar JSON</Btn>
@@ -115,37 +94,6 @@ export default function Movimientos({ datos, onEliminar, onEditar, onImportar })
             </thead>
             <tbody>
               {filtrados.map(m => (
-                editId === m.id ? (
-                  <tr key={m.id} style={{ borderBottom: '1px solid #1e1e1e', background: '#181818' }}>
-                    <td style={{ padding: '8px 16px' }}>
-                      <input type="date" value={editRow.fecha} onChange={e => setEditRow({ ...editRow, fecha: e.target.value })}
-                        style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 6, color: '#ede9e1', fontSize: 12, padding: '5px 8px', fontFamily: "'IBM Plex Mono',monospace" }} />
-                    </td>
-                    <td style={{ padding: '8px 8px' }}>
-                      <input value={editRow.desc || ''} onChange={e => setEditRow({ ...editRow, desc: e.target.value })}
-                        style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 6, color: '#ede9e1', fontSize: 13, padding: '5px 8px', width: '100%' }} />
-                    </td>
-                    <td style={{ padding: '8px 8px' }}>
-                      <select value={editRow.cat} onChange={e => setEditRow({ ...editRow, cat: e.target.value })} style={selStyle}>
-                        {(editRow.tipo === 'gasto' ? CATS_GASTO : CATS_INGRESO).map(c => <option key={c}>{c}</option>)}
-                      </select>
-                    </td>
-                    <td style={{ padding: '8px 8px' }}>
-                      <select value={editRow.tipo} onChange={e => setEditRow({ ...editRow, tipo: e.target.value, cat: '' })} style={selStyle}>
-                        <option value="gasto">gasto</option>
-                        <option value="ingreso">ingreso</option>
-                      </select>
-                    </td>
-                    <td style={{ padding: '8px 16px', textAlign: 'right' }}>
-                      <input type="number" value={editRow.importe} onChange={e => setEditRow({ ...editRow, importe: e.target.value })}
-                        style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 6, color: '#ede9e1', fontSize: 13, padding: '5px 8px', width: 90, textAlign: 'right', fontFamily: "'IBM Plex Mono',monospace" }} />
-                    </td>
-                    <td style={{ padding: '8px 12px', display: 'flex', gap: 6 }}>
-                      <Btn small variant="accent" onClick={guardarEdicion}>✓</Btn>
-                      <Btn small onClick={() => { setEditId(null); setEditRow(null) }}>✕</Btn>
-                    </td>
-                  </tr>
-                ) : (
                 <tr key={m.id} style={{ borderBottom: '1px solid #1e1e1e' }}>
                   <td style={{ padding: '10px 16px', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#5a5a5a', whiteSpace: 'nowrap' }}>{m.fecha}</td>
                   <td style={{ padding: '10px 8px', fontSize: 13 }}>{m.desc || '—'}</td>
@@ -156,12 +104,10 @@ export default function Movimientos({ datos, onEliminar, onEditar, onImportar })
                   <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: m.tipo === 'gasto' ? '#f05c5c' : '#52c98a', whiteSpace: 'nowrap' }}>
                     {m.tipo === 'gasto' ? '−' : '+'} ${fmtNum(m.importe)}
                   </td>
-                  <td style={{ padding: '10px 12px', display: 'flex', gap: 6 }}>
-                    <Btn small onClick={() => empezarEdicion(m)}>✎</Btn>
+                  <td style={{ padding: '10px 12px' }}>
                     <Btn small variant="danger" onClick={() => { if (confirm('¿Eliminar este movimiento?')) onEliminar(m.id) }}>×</Btn>
                   </td>
                 </tr>
-                )
               ))}
             </tbody>
           </table>

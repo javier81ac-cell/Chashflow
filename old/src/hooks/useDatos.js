@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { sheetGet, sheetAdd, sheetDelete, sheetUpdate, presupuestosGet, presupuestosSet } from '../lib/sheets'
+import { sheetGet, sheetAdd, sheetDelete } from '../lib/sheets'
 
 const LOCAL_KEY = 'mf_datos_v2'
-const PRES_KEY  = 'mf_presupuestos_v1'
 
 function load() {
   try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]') } catch { return [] }
@@ -12,28 +11,14 @@ function save(data) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(data))
 }
 
-function loadPresLocal() {
-  try { return JSON.parse(localStorage.getItem(PRES_KEY) || '{}') } catch { return {} }
-}
-
-function savePresLocal(p) {
-  localStorage.setItem(PRES_KEY, JSON.stringify(p))
-}
-
 export function useDatos() {
   const [datos, setDatos] = useState(load)
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState(null)
-  const [presupuestos, setPresupuestosState] = useState(loadPresLocal)
 
   const persist = useCallback((next) => {
     setDatos(next)
     save(next)
-  }, [])
-
-  const persistPres = useCallback((next) => {
-    setPresupuestosState(next)
-    savePresLocal(next)
   }, [])
 
   const sync = useCallback(async () => {
@@ -42,10 +27,8 @@ export function useDatos() {
     const remote = await sheetGet()
     if (remote) persist(remote)
     else setError('Sin conexión con Google Sheets')
-    const remotePres = await presupuestosGet()
-    if (remotePres) persistPres(remotePres)
     setSyncing(false)
-  }, [persist, persistPres])
+  }, [persist])
 
   useEffect(() => { sync() }, []) // eslint-disable-line
 
@@ -70,29 +53,9 @@ export function useDatos() {
     }
   }, [datos, persist, sync])
 
-  const editar = useCallback(async (mov) => {
-    const apiUrl = localStorage.getItem('mf_api_url')
-    if (apiUrl) {
-      const ok = await sheetUpdate(mov)
-      if (!ok) throw new Error('Error al actualizar en Google Sheets')
-      await sync()
-    } else {
-      persist(datos.map(d => d.id === mov.id ? mov : d))
-    }
-  }, [datos, persist, sync])
-
-  const actualizarPresupuestos = useCallback(async (next) => {
-    const apiUrl = localStorage.getItem('mf_api_url')
-    if (apiUrl) {
-      const ok = await presupuestosSet(next)
-      if (!ok) throw new Error('Error al guardar presupuestos en Google Sheets')
-    }
-    persistPres(next)
-  }, [persistPres])
-
   const importar = useCallback((nuevos) => {
     persist(nuevos)
   }, [persist])
 
-  return { datos, syncing, error, sync, agregar, eliminar, editar, importar, presupuestos, actualizarPresupuestos }
+  return { datos, syncing, error, sync, agregar, eliminar, importar }
 }
