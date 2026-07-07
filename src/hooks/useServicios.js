@@ -80,9 +80,9 @@ export function useServicios() {
 
   const avisarAhora = useCallback(async () => {
     if (!getApiUrl()) throw new Error('Conectá Google Sheets en Config para poder enviar avisos.')
-    const enviados = await serviciosAvisarAhora()
-    if (enviados === null) throw new Error('No se pudo enviar el aviso. Revisá teléfono y apikey.')
-    return enviados
+    const resultado = await serviciosAvisarAhora()
+    if (resultado === null) throw new Error('No se pudo contactar al servidor. Revisá tu conexión.')
+    return resultado
   }, [])
 
   return { servicios, config, syncing, sync, agregar, editar, eliminar, guardarConfig, avisarAhora }

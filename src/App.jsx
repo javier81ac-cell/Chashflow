@@ -8,6 +8,7 @@ import Analisis from './components/Analisis'
 import Config from './components/Config'
 import ScanTicket from './components/ScanTicket'
 import Servicios from './components/Servicios'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const NAV = [
   { id: 'cargar',      label: 'Cargar',      icon: <IconPlus /> },
@@ -84,13 +85,15 @@ export default function App() {
       </aside>
 
       <main style={{ flex: 1, padding: '32px 40px', maxWidth: 920 }}>
-        {page === 'cargar'      && <Cargar      datos={datos} onAgregar={agregar} />}
-        {page === 'scan'        && <ScanTicket  onAgregar={agregar} />}
-        {page === 'panel'       && <Panel        datos={datos} />}
-        {page === 'movimientos' && <Movimientos  datos={datos} onEliminar={eliminar} onEditar={editar} onImportar={importar} />}
-        {page === 'servicios'   && <Servicios    {...serviciosApi} />}
-        {page === 'analisis'    && <Analisis     datos={datos} presupuestos={presupuestos} onActualizarPresupuestos={actualizarPresupuestos} />}
-        {page === 'config'      && <Config       onSync={sync} />}
+        <ErrorBoundary key={page}>
+          {page === 'cargar'      && <Cargar      datos={datos} onAgregar={agregar} />}
+          {page === 'scan'        && <ScanTicket  onAgregar={agregar} />}
+          {page === 'panel'       && <Panel        datos={datos} />}
+          {page === 'movimientos' && <Movimientos  datos={datos} onEliminar={eliminar} onEditar={editar} onImportar={importar} />}
+          {page === 'servicios'   && <Servicios    {...serviciosApi} />}
+          {page === 'analisis'    && <Analisis     datos={datos} presupuestos={presupuestos} onActualizarPresupuestos={actualizarPresupuestos} />}
+          {page === 'config'      && <Config       onSync={sync} />}
+        </ErrorBoundary>
       </main>
     </div>
   )

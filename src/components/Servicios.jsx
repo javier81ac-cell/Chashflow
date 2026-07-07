@@ -74,13 +74,21 @@ export default function Servicios({ servicios, config, syncing, agregar, editar,
   async function handleAvisarAhora() {
     setAvisando(true); setAvisoMsg('')
     try {
-      const n = await avisarAhora()
-      setAvisoMsg(n > 0 ? `✓ ${n} aviso(s) enviado(s) por WhatsApp` : 'No hay vencimientos dentro del rango de aviso.')
+      const { enviados, candidatos } = await avisarAhora()
+      if (candidatos === 0) {
+        setAvisoMsg('No hay vencimientos dentro del rango de aviso.')
+      } else if (enviados === candidatos) {
+        setAvisoMsg(`✓ ${enviados} aviso(s) enviado(s) por WhatsApp`)
+      } else {
+        setAvisoMsg(`⚠ Había ${candidatos} vencimiento(s) para avisar pero falló el envío. Revisá que el teléfono y el apikey estén guardados y sean correctos.`)
+      }
     } catch (e) { setAvisoMsg(e.message) }
     setAvisando(false)
   }
 
-  const ordenados = [...servicios].sort((a, b) => a.vencimiento.localeCompare(b.vencimiento))
+  const ordenados = [...servicios]
+    .filter(s => s && s.vencimiento)
+    .sort((a, b) => String(a.vencimiento).localeCompare(String(b.vencimiento)))
 
   return (
     <div style={{ animation: 'fadeUp .3s ease' }}>

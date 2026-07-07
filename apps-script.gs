@@ -18,7 +18,18 @@ function getServiciosSheet() {
     sheet = ss.insertSheet(SHEET_NAME_SERVICIOS)
     sheet.appendRow(['id', 'nombre', 'monto', 'vencimiento', 'recurrente', 'activo', 'ultimoAvisoPara'])
   }
+  // Forzamos texto plano en "vencimiento" y "ultimoAvisoPara" para que Sheets no las
+  // auto-convierta a fecha (eso rompía la lectura y mostraba "NaN días" en la app).
+  sheet.getRange('D2:D').setNumberFormat('@')
+  sheet.getRange('G2:G').setNumberFormat('@')
   return sheet
+}
+
+// Convierte cualquier valor de la columna vencimiento (string ISO, o un objeto Date si
+// Sheets llegó a auto-convertirlo antes de este fix) a un string 'yyyy-MM-dd' prolijo.
+function normalizarFecha(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  return String(v).slice(0, 10)
 }
 
 function doGet(e) {
@@ -34,7 +45,7 @@ function doGet(e) {
         const obj = {}
         headers.forEach((h, i) => obj[h] = row[i])
         obj.monto = Number(obj.monto)
-        obj.vencimiento = String(obj.vencimiento).slice(0, 10)
+        obj.vencimiento = normalizarFecha(obj.vencimiento)
         obj.recurrente = obj.recurrente === true || obj.recurrente === 'TRUE'
         obj.activo = obj.activo === true || obj.activo === 'TRUE'
         return obj
@@ -108,7 +119,13 @@ function doPost(e) {
 
     if (payload.action === 'addServicio') {
       const r = payload.row
-      getServiciosSheet().appendRow([r.id, r.nombre, Number(r.monto), r.vencimiento, !!r.recurrente, true, ''])
+      const sheet = getServiciosSheet()
+      const row = sheet.getLastRow() + 1
+      // Fijamos formato texto ANTES de escribir: si se escribe primero y se formatea
+      // después, Sheets ya convirtió el string a fecha y no hay forma de revertirlo.
+      sheet.getRange(row, 4).setNumberFormat('@')
+      sheet.getRange(row, 7).setNumberFormat('@')
+      sheet.getRange(row, 1, 1, 7).setValues([[r.id, r.nombre, Number(r.monto), r.vencimiento, !!r.recurrente, true, '']])
       return json({ ok: true })
     }
 
@@ -118,6 +135,7 @@ function doPost(e) {
       const r = payload.row
       for (let i = 1; i < rows.length; i++) {
         if (String(rows[i][0]) === String(r.id)) {
+          sheet.getRange(i + 1, 4).setNumberFormat('@')
           sheet.getRange(i + 1, 1, 1, 6).setValues([[r.id, r.nombre, Number(r.monto), r.vencimiento, !!r.recurrente, r.activo !== false]])
           return json({ ok: true })
         }
@@ -143,8 +161,8 @@ function doPost(e) {
     }
 
     if (payload.action === 'avisarAhora') {
-      const enviados = revisarVencimientos(true)
-      return json({ ok: true, enviados })
+      const resultado = revisarVencimientos(true)
+      return json({ ok: true, enviados: resultado.enviados, candidatos: resultado.candidatos })
     }
 
     if (payload.action === 'scan') {
@@ -261,8 +279,8 @@ function enviarWhatsApp(telefono, apikey, texto) {
     + '&text=' + encodeURIComponent(texto)
     + '&apikey=' + encodeURIComponent(apikey)
   try {
-    UrlFetchApp.fetch(url, { muteHttpExceptions: true })
-    return true
+    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true })
+    return res.getResponseCode() === 200
   } catch (err) {
     return false
   }
@@ -275,11 +293,12 @@ function revisarVencimientos(forzar) {
   const cfg = getServiciosConfig()
   const sheet = getServiciosSheet()
   const rows  = sheet.getDataRange().getValues()
-  if (rows.length <= 1) return 0
+  if (rows.length <= 1) return { enviados: 0, candidatos: 0 }
 
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
   let enviados = 0
+  let candidatos = 0
 
   for (let i = 1; i < rows.length; i++) {
     const [id, nombre, monto, vencimientoRaw, recurrente, activo, ultimoAvisoPara] = rows[i]
@@ -294,8 +313,8 @@ function revisarVencimientos(forzar) {
       nuevaFecha.setMonth(nuevaFecha.getMonth() + 1)
       vencimiento = nuevaFecha
       const fechaStr = Utilities.formatDate(vencimiento, Session.getScriptTimeZone(), 'yyyy-MM-dd')
-      sheet.getRange(i + 1, 4).setValue(fechaStr)
-      sheet.getRange(i + 1, 7).setValue('')
+      sheet.getRange(i + 1, 4).setNumberFormat('@').setValue(fechaStr)
+      sheet.getRange(i + 1, 7).setNumberFormat('@').setValue('')
     }
 
     const diffDias = Math.round((vencimiento - hoy) / 86400000)
@@ -303,17 +322,18 @@ function revisarVencimientos(forzar) {
     const yaAvisado = String(ultimoAvisoPara) === fechaVenc
 
     if (diffDias >= 0 && diffDias <= (cfg.diasAviso || 3) && (forzar || !yaAvisado)) {
+      candidatos++
       const texto = diffDias === 0
         ? `🔔 Chashflow: hoy vence "${nombre}" ($${monto}).`
         : `🔔 Chashflow: "${nombre}" ($${monto}) vence en ${diffDias} día(s), el ${fechaVenc}.`
       const ok = enviarWhatsApp(cfg.telefono, cfg.apikey, texto)
       if (ok) {
-        sheet.getRange(i + 1, 7).setValue(fechaVenc)
+        sheet.getRange(i + 1, 7).setNumberFormat('@').setValue(fechaVenc)
         enviados++
       }
     }
   }
-  return enviados
+  return { enviados, candidatos }
 }
 
 // Ejecutar UNA VEZ manualmente desde el editor de Apps Script (▶ Ejecutar) para instalar
