@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Select, Empty, Field, Input, Btn } from './UI'
+import { Select, Empty } from './UI'
 import { getMeses, mesLabel, fmtNum } from '../lib/constants'
 
 function Rec({ nivel, titulo, children }) {
@@ -19,11 +19,9 @@ function Rec({ nivel, titulo, children }) {
   )
 }
 
-export default function Analisis({ datos, presupuestos = {}, onActualizarPresupuestos }) {
+export default function Analisis({ datos }) {
   const meses = useMemo(() => getMeses(datos), [datos])
   const [mes, setMes] = useState(() => meses[meses.length - 1] || '')
-  const [editandoPres, setEditandoPres] = useState(false)
-  const [presForm, setPresForm] = useState(presupuestos)
 
   if (!meses.length) return <Empty text="Sin datos. Cargá movimientos primero." />
 
@@ -32,21 +30,6 @@ export default function Analisis({ datos, presupuestos = {}, onActualizarPresupu
   const gastos   = movMes.filter(d => d.tipo === 'gasto').reduce((s, d) => s + Number(d.importe), 0)
   const ahorro   = ingresos - gastos
   const pct      = ingresos > 0 ? Math.round(ahorro / ingresos * 100) : 0
-
-  const idxMes = meses.indexOf(mes)
-  const mesAnterior = idxMes > 0 ? meses[idxMes - 1] : null
-  const movMesAnt = mesAnterior ? datos.filter(d => d.fecha.startsWith(mesAnterior)) : []
-  const gastosAnt = movMesAnt.filter(d => d.tipo === 'gasto').reduce((s, d) => s + Number(d.importe), 0)
-  const ingresosAnt = movMesAnt.filter(d => d.tipo === 'ingreso').reduce((s, d) => s + Number(d.importe), 0)
-
-  function actualizarLimite(cat, val) {
-    setPresForm({ ...presForm, [cat]: val === '' ? undefined : Number(val) })
-  }
-
-  async function guardarPresupuestos() {
-    await onActualizarPresupuestos(presForm)
-    setEditandoPres(false)
-  }
 
   const porCat = {}
   movMes.filter(d => d.tipo === 'gasto').forEach(d => { porCat[d.cat] = (porCat[d.cat] || 0) + Number(d.importe) })
@@ -69,34 +52,6 @@ export default function Analisis({ datos, presupuestos = {}, onActualizarPresupu
           {meses.map(m => <option key={m} value={m}>{mesLabel(m)}</option>)}
         </select>
       </div>
-
-      {/* Comparativa con mes anterior */}
-      {mesAnterior && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-          <div style={{ background: '#151515', border: '1px solid #2a2a2a', borderRadius: 10, padding: '14px 18px' }}>
-            <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: '#5a5a5a', textTransform: 'uppercase', marginBottom: 6 }}>Gastos vs. {mesLabel(mesAnterior)}</div>
-            <div style={{ fontSize: 18, fontFamily: "'IBM Plex Mono',monospace" }}>
-              ${fmtNum(gastos)}{' '}
-              {gastosAnt > 0 && (
-                <span style={{ fontSize: 12, color: gastos > gastosAnt ? '#f05c5c' : '#52c98a' }}>
-                  {gastos > gastosAnt ? '▲' : '▼'} {Math.abs(Math.round((gastos - gastosAnt) / gastosAnt * 100))}%
-                </span>
-              )}
-            </div>
-          </div>
-          <div style={{ background: '#151515', border: '1px solid #2a2a2a', borderRadius: 10, padding: '14px 18px' }}>
-            <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: '#5a5a5a', textTransform: 'uppercase', marginBottom: 6 }}>Ingresos vs. {mesLabel(mesAnterior)}</div>
-            <div style={{ fontSize: 18, fontFamily: "'IBM Plex Mono',monospace" }}>
-              ${fmtNum(ingresos)}{' '}
-              {ingresosAnt > 0 && (
-                <span style={{ fontSize: 12, color: ingresos >= ingresosAnt ? '#52c98a' : '#f05c5c' }}>
-                  {ingresos >= ingresosAnt ? '▲' : '▼'} {Math.abs(Math.round((ingresos - ingresosAnt) / ingresosAnt * 100))}%
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Tasa de ahorro */}
       {ingresos === 0 ? (
@@ -180,50 +135,6 @@ export default function Analisis({ datos, presupuestos = {}, onActualizarPresupu
           ))}
         </div>
       )}
-
-      {/* Presupuestos por categoría */}
-      <div style={{ background: '#151515', border: '1px solid #2a2a2a', borderRadius: 10, overflow: 'hidden', marginTop: 14 }}>
-        <div style={{ padding: '12px 18px', borderBottom: '1px solid #2a2a2a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: '#5a5a5a', letterSpacing: '.07em', textTransform: 'uppercase' }}>
-            Presupuestos por categoría
-          </span>
-          {editandoPres ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn small variant="accent" onClick={guardarPresupuestos}>Guardar</Btn>
-              <Btn small onClick={() => { setPresForm(presupuestos); setEditandoPres(false) }}>Cancelar</Btn>
-            </div>
-          ) : (
-            <Btn small onClick={() => setEditandoPres(true)}>Editar límites</Btn>
-          )}
-        </div>
-        {cats.length === 0 ? <Empty text="Sin gastos este mes." /> : cats.map(([c, a]) => {
-          const limite = presupuestos[c]
-          const p = limite ? Math.round(a / limite * 100) : null
-          return (
-            <div key={c} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 18px', borderBottom: '1px solid #1e1e1e', gap: 12 }}>
-              <span style={{ fontSize: 13, minWidth: 130 }}>{c}</span>
-              {editandoPres ? (
-                <input
-                  type="number" min="0" placeholder="sin límite"
-                  value={presForm[c] ?? ''}
-                  onChange={e => actualizarLimite(c, e.target.value)}
-                  style={{ background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 6, color: '#ede9e1', fontSize: 12, padding: '5px 8px', width: 110, fontFamily: "'IBM Plex Mono',monospace" }}
-                />
-              ) : limite ? (
-                <>
-                  <div style={{ flex: 1, height: 4, background: '#2a2a2a', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${Math.min(p, 100)}%`, background: p > 100 ? '#f05c5c' : p > 85 ? '#f0b340' : '#52c98a', borderRadius: 2 }} />
-                  </div>
-                  <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: p > 100 ? '#f05c5c' : '#5a5a5a', minWidth: 42, textAlign: 'right' }}>{p}%</span>
-                  <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#ede9e1', minWidth: 110, textAlign: 'right' }}>${fmtNum(a)} / ${fmtNum(limite)}</span>
-                </>
-              ) : (
-                <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#3a3a3a' }}>sin límite definido · ${fmtNum(a)}</span>
-              )}
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }

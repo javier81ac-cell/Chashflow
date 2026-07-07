@@ -1,28 +1,24 @@
 import React, { useState } from 'react'
 import { useDatos } from './hooks/useDatos'
-import { useServicios } from './hooks/useServicios'
 import Cargar from './components/Cargar'
 import Panel from './components/Panel'
 import Movimientos from './components/Movimientos'
 import Analisis from './components/Analisis'
 import Config from './components/Config'
 import ScanTicket from './components/ScanTicket'
-import Servicios from './components/Servicios'
 
 const NAV = [
   { id: 'cargar',      label: 'Cargar',      icon: <IconPlus /> },
   { id: 'scan',        label: 'Escanear',    icon: <IconCamera /> },
   { id: 'panel',       label: 'Panel',       icon: <IconGrid /> },
   { id: 'movimientos', label: 'Movimientos', icon: <IconList /> },
-  { id: 'servicios',   label: 'Servicios',   icon: <IconBell /> },
   { id: 'analisis',    label: 'Análisis',    icon: <IconStar /> },
   { id: 'config',      label: 'Config',      icon: <IconGear /> },
 ]
 
 export default function App() {
   const [page, setPage] = useState('cargar')
-  const { datos, syncing, error, sync, agregar, eliminar, editar, importar, presupuestos, actualizarPresupuestos } = useDatos()
-  const serviciosApi = useServicios()
+  const { datos, syncing, error, sync, agregar, eliminar, importar } = useDatos()
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -87,9 +83,8 @@ export default function App() {
         {page === 'cargar'      && <Cargar      datos={datos} onAgregar={agregar} />}
         {page === 'scan'        && <ScanTicket  onAgregar={agregar} />}
         {page === 'panel'       && <Panel        datos={datos} />}
-        {page === 'movimientos' && <Movimientos  datos={datos} onEliminar={eliminar} onEditar={editar} onImportar={importar} />}
-        {page === 'servicios'   && <Servicios    {...serviciosApi} />}
-        {page === 'analisis'    && <Analisis     datos={datos} presupuestos={presupuestos} onActualizarPresupuestos={actualizarPresupuestos} />}
+        {page === 'movimientos' && <Movimientos  datos={datos} onEliminar={eliminar} onImportar={importar} />}
+        {page === 'analisis'    && <Analisis     datos={datos} />}
         {page === 'config'      && <Config       onSync={sync} />}
       </main>
     </div>
@@ -102,4 +97,3 @@ function IconGrid()   { return <svg width="16" height="16" viewBox="0 0 16 16" f
 function IconList()   { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12M2 8h9M2 12h6"/></svg> }
 function IconStar()   { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 2l1.5 3.5L13 6l-2.5 2.5.5 3.5L8 10.5 5 12l.5-3.5L3 6l3.5-.5z"/></svg> }
 function IconGear()   { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2"/></svg> }
-function IconBell()   { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 6a4 4 0 018 0c0 3 1 4 1 4H3s1-1 1-4z"/><path d="M6.5 12.5a1.5 1.5 0 003 0"/></svg> }
