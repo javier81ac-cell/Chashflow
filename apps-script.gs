@@ -11,25 +11,44 @@ function getSheet() {
   return SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME)
 }
 
+// Convierte un string 'yyyy-MM-dd' en el valor que hay que escribir para que Sheets
+// jamás lo interprete como fecha. Formatear la celda como texto ANTES de escribir no
+// alcanza (Sheets sigue auto-convirtiendo vía Apps Script); el apóstrofe inicial es la
+// única forma 100% confiable de forzarlo a texto literal. Sheets guarda el string sin
+// el apóstrofe: al leerlo con getValues() vuelve limpio, tal cual "2026-07-08".
+function comoTexto(fechaStr) {
+  return "'" + fechaStr
+}
+
 function getServiciosSheet() {
   const ss = SpreadsheetApp.openById(SHEET_ID)
   let sheet = ss.getSheetByName(SHEET_NAME_SERVICIOS)
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME_SERVICIOS)
     sheet.appendRow(['id', 'nombre', 'monto', 'vencimiento', 'recurrente', 'activo', 'ultimoAvisoPara'])
+    // Solo al crear la hoja (vacía) fijamos texto plano en un rango amplio hacia adelante.
+    // OJO: nunca hacer esto sobre filas que ya tengan datos — si una celda ya es tipo
+    // Fecha, forzarle formato texto la convierte a un string largo tipo Date.toString(),
+    // que es justo lo que rompió la lectura antes.
+    sheet.getRange('D2:D1000').setNumberFormat('@')
+    sheet.getRange('G2:G1000').setNumberFormat('@')
   }
-  // Forzamos texto plano en "vencimiento" y "ultimoAvisoPara" para que Sheets no las
-  // auto-convierta a fecha (eso rompía la lectura y mostraba "NaN días" en la app).
-  sheet.getRange('D2:D').setNumberFormat('@')
-  sheet.getRange('G2:G').setNumberFormat('@')
   return sheet
 }
 
-// Convierte cualquier valor de la columna vencimiento (string ISO, o un objeto Date si
-// Sheets llegó a auto-convertirlo antes de este fix) a un string 'yyyy-MM-dd' prolijo.
+// Convierte cualquier valor de la columna vencimiento a un string 'yyyy-MM-dd' prolijo,
+// sin importar cómo haya quedado guardado: string ISO limpio, objeto Date, o incluso el
+// texto largo tipo "Wed Jul 08 2026 00:00:00 GMT-0300 (...)" que Sheets pudo haber
+// generado en algún momento. Es defensiva a propósito para autorepararse sola.
 function normalizarFecha(v) {
-  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd')
-  return String(v).slice(0, 10)
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  }
+  const s = String(v || '').trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
+  const d = new Date(s)
+  if (!isNaN(d.getTime())) return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+  return s.slice(0, 10)
 }
 
 function doGet(e) {
@@ -121,11 +140,9 @@ function doPost(e) {
       const r = payload.row
       const sheet = getServiciosSheet()
       const row = sheet.getLastRow() + 1
-      // Fijamos formato texto ANTES de escribir: si se escribe primero y se formatea
-      // después, Sheets ya convirtió el string a fecha y no hay forma de revertirlo.
       sheet.getRange(row, 4).setNumberFormat('@')
       sheet.getRange(row, 7).setNumberFormat('@')
-      sheet.getRange(row, 1, 1, 7).setValues([[r.id, r.nombre, Number(r.monto), r.vencimiento, !!r.recurrente, true, '']])
+      sheet.getRange(row, 1, 1, 7).setValues([[r.id, r.nombre, Number(r.monto), comoTexto(r.vencimiento), !!r.recurrente, true, '']])
       return json({ ok: true })
     }
 
@@ -136,7 +153,7 @@ function doPost(e) {
       for (let i = 1; i < rows.length; i++) {
         if (String(rows[i][0]) === String(r.id)) {
           sheet.getRange(i + 1, 4).setNumberFormat('@')
-          sheet.getRange(i + 1, 1, 1, 6).setValues([[r.id, r.nombre, Number(r.monto), r.vencimiento, !!r.recurrente, r.activo !== false]])
+          sheet.getRange(i + 1, 1, 1, 6).setValues([[r.id, r.nombre, Number(r.monto), comoTexto(r.vencimiento), !!r.recurrente, r.activo !== false]])
           return json({ ok: true })
         }
       }
@@ -270,8 +287,9 @@ function setServiciosConfig(cfg) {
 }
 
 // Envía un mensaje de WhatsApp usando CallMeBot (gratuito, solo al número registrado con el apikey).
-// Guía rápida: agregá el contacto +34 644 59 71 67 en tu WhatsApp, mandale "I allow callmebot to
-// add me" y te va a responder con tu apikey. Cargá ese teléfono y apikey en el módulo Servicios.
+// Guía rápida: agregá el contacto +34 611 01 16 37 en tu WhatsApp, mandale "Autorizo
+// callmebot a enviarme mensajes" y te va a responder con tu apikey. Cargá ese teléfono
+// y apikey en el módulo Servicios.
 function enviarWhatsApp(telefono, apikey, texto) {
   if (!telefono || !apikey) return false
   const url = 'https://api.callmebot.com/whatsapp.php'
@@ -313,7 +331,7 @@ function revisarVencimientos(forzar) {
       nuevaFecha.setMonth(nuevaFecha.getMonth() + 1)
       vencimiento = nuevaFecha
       const fechaStr = Utilities.formatDate(vencimiento, Session.getScriptTimeZone(), 'yyyy-MM-dd')
-      sheet.getRange(i + 1, 4).setNumberFormat('@').setValue(fechaStr)
+      sheet.getRange(i + 1, 4).setNumberFormat('@').setValue(comoTexto(fechaStr))
       sheet.getRange(i + 1, 7).setNumberFormat('@').setValue('')
     }
 
@@ -328,7 +346,7 @@ function revisarVencimientos(forzar) {
         : `🔔 Chashflow: "${nombre}" ($${monto}) vence en ${diffDias} día(s), el ${fechaVenc}.`
       const ok = enviarWhatsApp(cfg.telefono, cfg.apikey, texto)
       if (ok) {
-        sheet.getRange(i + 1, 7).setNumberFormat('@').setValue(fechaVenc)
+        sheet.getRange(i + 1, 7).setNumberFormat('@').setValue(comoTexto(fechaVenc))
         enviados++
       }
     }
@@ -351,6 +369,25 @@ function crearTriggerDiario() {
 
 function revisarVencimientosTrigger() {
   revisarVencimientos(false)
+}
+
+// Ejecutar UNA VEZ manualmente (▶ desde el editor) para arreglar filas de Servicios que
+// hayan quedado guardadas con la fecha como objeto Date en vez de texto (el bug de antes
+// de este fix). Convierte cada vencimiento existente a texto plano real.
+function repararFechasServicios() {
+  const sheet = getServiciosSheet()
+  const rows = sheet.getDataRange().getValues()
+  let reparadas = 0
+  for (let i = 1; i < rows.length; i++) {
+    const raw = rows[i][3]
+    if (raw instanceof Date) {
+      const fechaStr = Utilities.formatDate(raw, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      sheet.getRange(i + 1, 4).setNumberFormat('@').setValue(comoTexto(fechaStr))
+      reparadas++
+    }
+  }
+  Logger.log('Filas reparadas: ' + reparadas)
+  return reparadas
 }
 
 function json(data) {

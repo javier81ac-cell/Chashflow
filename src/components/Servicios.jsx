@@ -1,15 +1,23 @@
 import React, { useState } from 'react'
 import { Card, Btn, Field, Input, Empty, Spinner, SectionTitle } from './UI'
-import { fmtNum, today } from '../lib/constants'
+import { fmtNum, today, parseFechaFlexible, normalizarFechaDisplay, fmtFecha } from '../lib/constants'
 
 function diasHasta(fecha) {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
-  const v = new Date(fecha + 'T00:00:00')
+  const v = parseFechaFlexible(fecha)
+  v.setHours(0, 0, 0, 0)
   return Math.round((v - hoy) / 86400000)
 }
 
 function EstadoVencimiento({ fecha, diasAviso }) {
   const dias = diasHasta(fecha)
+  if (isNaN(dias)) {
+    return (
+      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", background: '#2a2a2a', color: '#5a5a5a' }}>
+        fecha inválida
+      </span>
+    )
+  }
   let color = '#5a5a5a', bg = 'transparent', txt = `en ${dias} días`
   if (dias < 0)            { color = '#f05c5c'; bg = '#2a0f0f'; txt = `vencido hace ${Math.abs(dias)}d` }
   else if (dias === 0)     { color = '#f05c5c'; bg = '#2a0f0f'; txt = 'vence hoy' }
@@ -88,7 +96,8 @@ export default function Servicios({ servicios, config, syncing, agregar, editar,
 
   const ordenados = [...servicios]
     .filter(s => s && s.vencimiento)
-    .sort((a, b) => String(a.vencimiento).localeCompare(String(b.vencimiento)))
+    .map(s => ({ ...s, vencimientoDisplay: normalizarFechaDisplay(s.vencimiento) }))
+    .sort((a, b) => a.vencimientoDisplay.localeCompare(b.vencimientoDisplay))
 
   return (
     <div style={{ animation: 'fadeUp .3s ease' }}>
@@ -139,7 +148,7 @@ export default function Servicios({ servicios, config, syncing, agregar, editar,
               {ordenados.map(s => (
                 <tr key={s.id} style={{ borderBottom: '1px solid #1e1e1e' }}>
                   <td style={{ padding: '10px 20px', fontSize: 13 }}>{s.nombre}{s.recurrente && <span style={{ color: '#3a3a3a', fontSize: 11 }}> · mensual</span>}</td>
-                  <td style={{ padding: '10px 8px', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#5a5a5a', whiteSpace: 'nowrap' }}>{s.vencimiento}</td>
+                  <td style={{ padding: '10px 8px', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#5a5a5a', whiteSpace: 'nowrap' }}>{fmtFecha(s.vencimientoDisplay)}</td>
                   <td style={{ padding: '10px 8px' }}><EstadoVencimiento fecha={s.vencimiento} diasAviso={config.diasAviso ?? 3} /></td>
                   <td style={{ padding: '10px 8px', textAlign: 'right', fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, whiteSpace: 'nowrap' }}>
                     ${fmtNum(s.monto)}
@@ -159,8 +168,8 @@ export default function Servicios({ servicios, config, syncing, agregar, editar,
       <Card style={{ marginTop: 8 }}>
         <SectionTitle>Aviso por WhatsApp (CallMeBot)</SectionTitle>
         <p style={{ fontSize: 12, color: '#5a5a5a', lineHeight: 1.6, marginBottom: 16 }}>
-          Agregá el contacto <strong>+34 644 59 71 67</strong> en tu WhatsApp y enviale el mensaje
-          <em> "I allow callmebot to add me"</em>. Te va a responder con tu apikey personal — pegalo acá abajo.
+          Agregá el contacto <strong>+34 611 01 16 37</strong> en tu WhatsApp y enviale el mensaje
+          <em> "Autorizo callmebot a enviarme mensajes"</em>. Te va a responder con tu apikey personal — pegalo acá abajo.
           El sistema revisa los vencimientos automáticamente una vez por día.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
