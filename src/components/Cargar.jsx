@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Btn, Field, Input, Select, Spinner } from './UI'
-import { CATS_GASTO, CATS_INGRESO, today, fmtNum } from '../lib/constants'
+import { CATS_GASTO, CATS_INGRESO, today, fmtNum, fmtFecha } from '../lib/constants'
 
 export default function Cargar({ datos, onAgregar }) {
   const [tipo, setTipo] = useState('gasto')
@@ -102,7 +102,7 @@ export default function Cargar({ datos, onAgregar }) {
             <tbody>
               {recientes.map(m => (
                 <tr key={m.id} style={{ borderBottom: '1px solid #1e1e1e' }}>
-                  <td style={{ padding: '10px 20px', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#5a5a5a', whiteSpace: 'nowrap' }}>{m.fecha}</td>
+                  <td style={{ padding: '10px 20px', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#5a5a5a', whiteSpace: 'nowrap' }}>{fmtFecha(m.fecha)}</td>
                   <td style={{ padding: '10px 8px', fontSize: 13 }}>{m.desc || m.cat}</td>
                   <td style={{ padding: '10px 8px', fontSize: 11, fontFamily: "'IBM Plex Mono',monospace", color: m.tipo === 'gasto' ? '#f05c5c' : '#52c98a' }}>{m.cat}</td>
                   <td style={{ padding: '10px 20px', textAlign: 'right', fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, color: m.tipo === 'gasto' ? '#f05c5c' : '#52c98a', whiteSpace: 'nowrap' }}>

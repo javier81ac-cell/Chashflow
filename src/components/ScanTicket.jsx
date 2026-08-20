@@ -77,6 +77,27 @@ export default function ScanTicket({ onAgregar }) {
     setMovimientos(prev => prev.map((m, idx) => idx === i ? { ...m, [campo]: valor } : m))
   }
 
+  function agregarLineaManual() {
+    setMovimientos(prev => {
+      const nuevoIndex = prev.length
+      setSeleccionados(sel => ({ ...sel, [nuevoIndex]: true }))
+      return [...prev, { fecha: fechaMasiva || today(), tipo: 'gasto', importe: '', descripcion: '', categoria: '' }]
+    })
+  }
+
+  function eliminarLinea(i) {
+    setMovimientos(prev => prev.filter((_, idx) => idx !== i))
+    setSeleccionados(prev => {
+      const next = {}
+      Object.entries(prev).forEach(([k, v]) => {
+        const idx = Number(k)
+        if (idx < i) next[idx] = v
+        else if (idx > i) next[idx - 1] = v
+      })
+      return next
+    })
+  }
+
   async function handleGuardar() {
     const aGuardar = movimientos.filter((_, i) => seleccionados[i])
     if (!aGuardar.length) { setError('Seleccioná al menos un movimiento.'); return }
@@ -191,7 +212,7 @@ export default function ScanTicket({ onAgregar }) {
           <Card style={{ padding: 0, overflow: 'hidden', marginBottom: 14 }}>
             {movimientos.map((m, i) => (
               <div key={i} style={{
-                display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 12,
+                display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 12,
                 padding: '12px 16px', borderBottom: '1px solid #1e1e1e',
                 background: seleccionados[i] ? 'rgba(212,240,96,.03)' : 'transparent',
                 opacity: seleccionados[i] ? 1 : 0.4, transition: 'all .15s'
@@ -247,8 +268,35 @@ export default function ScanTicket({ onAgregar }) {
                     </select>
                   </div>
                 </div>
+
+                {/* Eliminar */}
+                <div style={{ paddingTop: 2 }}>
+                  <button
+                    onClick={() => eliminarLinea(i)}
+                    title="Quitar esta línea"
+                    style={{ background: 'transparent', border: 'none', color: '#5a5a5a', cursor: 'pointer', fontSize: 15, padding: '2px 4px', lineHeight: 1 }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#f05c5c'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#5a5a5a'}
+                  >×</button>
+                </div>
               </div>
             ))}
+
+            {/* Agregar línea manual */}
+            <div style={{ padding: '10px 16px' }}>
+              <button
+                onClick={agregarLineaManual}
+                style={{
+                  background: 'transparent', border: '1px dashed #3a3a3a', borderRadius: 8,
+                  color: '#5a5a5a', cursor: 'pointer', fontSize: 12, padding: '8px 14px',
+                  fontFamily: "'Syne',sans-serif", width: '100%', transition: 'all .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#d4f060'; e.currentTarget.style.color = '#d4f060' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#3a3a3a'; e.currentTarget.style.color = '#5a5a5a' }}
+              >
+                + Agregar línea manual
+              </button>
+            </div>
           </Card>
 
           {/* Resumen y botones */}

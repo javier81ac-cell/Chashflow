@@ -196,7 +196,7 @@ export async function serviciosAvisarAhora() {
       body: JSON.stringify({ action: 'avisarAhora' }),
     })
     const j = await r.json()
-    return j.ok ? j.enviados : null
+    return j.ok ? { enviados: j.enviados, candidatos: j.candidatos } : null
   } catch {
     return null
   }

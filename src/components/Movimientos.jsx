@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { Card, Btn, Select, Input, Empty } from './UI'
-import { getMeses, mesLabel, fmtNum, CATS_GASTO, CATS_INGRESO } from '../lib/constants'
+import { getMeses, mesLabel, fmtNum, fmtFecha, CATS_GASTO, CATS_INGRESO } from '../lib/constants'
 
 export default function Movimientos({ datos, onEliminar, onEditar, onImportar }) {
   const [filMes, setFilMes]   = useState('')
@@ -147,7 +147,7 @@ export default function Movimientos({ datos, onEliminar, onEditar, onImportar })
                   </tr>
                 ) : (
                 <tr key={m.id} style={{ borderBottom: '1px solid #1e1e1e' }}>
-                  <td style={{ padding: '10px 16px', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#5a5a5a', whiteSpace: 'nowrap' }}>{m.fecha}</td>
+                  <td style={{ padding: '10px 16px', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#5a5a5a', whiteSpace: 'nowrap' }}>{fmtFecha(m.fecha)}</td>
                   <td style={{ padding: '10px 8px', fontSize: 13 }}>{m.desc || '—'}</td>
                   <td style={{ padding: '10px 8px', fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", color: '#5a5a5a' }}>{m.cat}</td>
                   <td style={{ padding: '10px 8px' }}>
