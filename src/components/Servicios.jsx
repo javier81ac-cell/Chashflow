@@ -96,8 +96,16 @@ export default function Servicios({ servicios, config, syncing, agregar, editar,
 
   const ordenados = [...servicios]
     .filter(s => s && s.vencimiento)
-    .map(s => ({ ...s, vencimientoDisplay: normalizarFechaDisplay(s.vencimiento) }))
-    .sort((a, b) => a.vencimientoDisplay.localeCompare(b.vencimientoDisplay))
+    .map(s => {
+      const dias = diasHasta(s.vencimiento)
+      return { ...s, vencimientoDisplay: normalizarFechaDisplay(s.vencimiento), dias: isNaN(dias) ? Infinity : dias }
+    })
+    .sort((a, b) => {
+      const aVencido = a.dias < 0
+      const bVencido = b.dias < 0
+      if (aVencido !== bVencido) return aVencido ? 1 : -1
+      return a.dias - b.dias
+    })
 
   return (
     <div style={{ animation: 'fadeUp .3s ease' }}>
@@ -146,7 +154,11 @@ export default function Servicios({ servicios, config, syncing, agregar, editar,
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
               {ordenados.map(s => (
-                <tr key={s.id} style={{ borderBottom: '1px solid #1e1e1e' }}>
+                <tr key={s.id} style={{
+                  borderBottom: '1px solid #1e1e1e',
+                  background: s.dias < 0 ? 'rgba(240,92,92,.07)' : 'transparent',
+                  borderLeft: s.dias < 0 ? '3px solid #f05c5c' : '3px solid transparent',
+                }}>
                   <td style={{ padding: '10px 20px', fontSize: 13 }}>{s.nombre}{s.recurrente && <span style={{ color: '#3a3a3a', fontSize: 11 }}> · mensual</span>}</td>
                   <td style={{ padding: '10px 8px', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, color: '#5a5a5a', whiteSpace: 'nowrap' }}>{fmtFecha(s.vencimientoDisplay)}</td>
                   <td style={{ padding: '10px 8px' }}><EstadoVencimiento fecha={s.vencimiento} diasAviso={config.diasAviso ?? 3} /></td>
