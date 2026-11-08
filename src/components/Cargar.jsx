@@ -31,7 +31,11 @@ export default function Cargar({ datos, onAgregar }) {
     setLoading(false)
   }
 
-  const recientes = [...datos].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id - a.id).slice(0, 5)
+  const hoy = today()
+  const recientes = [...datos]
+    .filter(m => m.fecha <= hoy)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id - a.id)
+    .slice(0, 5)
 
   return (
     <div style={{ animation: 'fadeUp .3s ease' }}>
